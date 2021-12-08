@@ -6,19 +6,21 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo-contrib/jaegertracing"
-	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/internal/config"
+	"github.com/modfin/mmailer/internal/svc"
+	"github.com/modfin/mmailer/services/generic"
+	"github.com/modfin/mmailer/services/mailjet"
+	"github.com/modfin/mmailer/services/mandrill"
+	"github.com/modfin/mmailer/services/sendgrid"
+	"github.com/labstack/echo-contrib/jaegertracing"
+	"github.com/labstack/echo-contrib/prometheus"
 	"io/ioutil"
 	"log"
-	"mfn/mmailer"
-	"mfn/mmailer/internal/config"
-	"mfn/mmailer/internal/svc"
-	"mfn/mmailer/services/mailjet"
-	"mfn/mmailer/services/mandrill"
-	"mfn/mmailer/services/sendgrid"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -241,11 +243,19 @@ func loadServices() {
 			}
 			fmt.Printf(" - Sendgrid: add the following posthook url %s/posthook?key=%s&service=sendgrid\n", config.Get().PublicURL, config.Get().PosthookKey)
 			services = append(services, decorate(sendgrid.New(parts[1])))
+		case "generic":
+			u, err := url.Parse(strings.Join(parts[1:], ":"))
+			if err != nil{
+				log.Println("[Err] could not parse url, ", parts[1], " expected smtp://user:pass@host.com:port" )
+				continue
+			}
+			fmt.Printf(" - Generic: posthooks are not implmented, adding %s\n", u.String())
+			services = append(services, decorate(generic.New(u)))
 		}
 	}
 
 	if len(services) == 0 {
-		log.Fatal("No valid services has to be provide")
+		log.Fatal("At least one valid service has to be provide")
 	}
 
 	facade = mmailer.New(selects, retry, services...)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"mfn/mmailer"
+	"github.com/modfin/mmailer"
 	"testing"
 )
 

@@ -1,0 +1,18 @@
+FROM golang:1.16.2-alpine as builder
+
+RUN apk add --no-cache git curl build-base bash shadow
+
+RUN mkdir -p /go/src/mmailer
+WORKDIR /go/src/mmailer
+
+COPY . /go/src/mmailer
+
+RUN ls
+
+RUN go build -o /mmailerd ./cmd/mmailerd/mmailerd.go
+
+FROM alpine
+RUN apk add --no-cache tzdata ca-certificates
+EXPOSE 8080
+COPY --from=builder /mmailerd /
+CMD /mmailerd

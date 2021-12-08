@@ -2,9 +2,9 @@ package svc
 
 import (
 	"context"
+	"github.com/modfin/mmailer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"mfn/mmailer"
 )
 
 var mailSend = promauto.NewCounterVec(prometheus.CounterOpts{

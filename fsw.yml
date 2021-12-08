@@ -1,0 +1,16 @@
+desc: re builds go
+triggers:
+  - name: ''
+    pattens:
+      - '**/*.go'
+    env:
+      DEBUG: '1'
+    cmd: go run cmd/mmailerd/mmailerd.go serve
+    shell: true
+    delay: 100ms
+    stop_timeout: 500ms
+    signal: KILL
+    kill_signal: 'SIGKILL'
+watch_paths:
+  - .
+watch_depth: 10

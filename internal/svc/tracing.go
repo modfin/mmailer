@@ -2,8 +2,8 @@ package svc
 
 import (
 	"context"
-	"mfn/mmailer"
-	"mfn/mmailer/internal/tracing"
+	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/internal/tracing"
 )
 
 func WithTracing(service mmailer.Service) mmailer.Service {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mfn/mmailer"
+	"github.com/modfin/mmailer"
 )
 
 func RetryEach(ctx context.Context, s mmailer.Service, e mmailer.Email, services []mmailer.Service) (res []mmailer.Response, err error) {

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/keighl/mandrill"
-	"mfn/mmailer"
+	"github.com/modfin/mmailer"
 	"net/http"
 	"net/url"
 	"strings"

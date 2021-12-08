@@ -2,7 +2,7 @@ package svc
 
 import (
 	"math/rand"
-	"mfn/mmailer"
+	"github.com/modfin/mmailer"
 	"sync"
 )
 

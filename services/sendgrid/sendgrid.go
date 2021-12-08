@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"mfn/mmailer"
+	"github.com/modfin/mmailer"
 	"strings"
 )
 

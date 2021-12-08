@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	mj "github.com/mailjet/mailjet-apiv3-go/v3"
-	"mfn/mmailer"
+	"github.com/modfin/mmailer"
 	"strings"
 )
 
