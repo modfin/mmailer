@@ -6,7 +6,7 @@ IMG=eu.gcr.io/spidercave/common/dev/mmailer
 COMMIT_MSG=$(git log -1 --pretty=format:"%s" .)
 AUTHOR=$(git log -1 --pretty=format:"%an" .)
 
-## Building latest irma-v2-backend
+## Building latest mmailer
 docker build -f Dockerfile.build \
     --label "CommitMsg=${COMMIT_MSG}" \
     --label "Author=${AUTHOR}" \

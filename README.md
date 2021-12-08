@@ -26,6 +26,6 @@ curl 'http://localhost:8080/send' \
      "to": [{"email": "jane.doe@example.com",
              "name": "Jane Doe"}],
      "subject": "A subject",
-     "html": "<p><strong>Hey</strong> this is where the html gose</p>"
+     "html": "<p><strong>Hey</strong> this is where the html gos</p>"
     }' --compressed
 ```
