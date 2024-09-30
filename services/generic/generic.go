@@ -1,10 +1,12 @@
 package generic
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"github.com/modfin/mmailer"
 	"github.com/modfin/mmailer/internal/smtpx"
+	"io"
 	"net/smtp"
 	"net/url"
 	"strings"
@@ -61,6 +63,13 @@ func (m *Generic) Send(ctx context.Context, email mmailer.Email) (res []mmailer.
 	}
 	if len(email.Html) > 0 {
 		message.SetBody("text/html", email.Html)
+	}
+	for k, v := range email.Attachments {
+		v := v
+		message.Attach(k, smtpx.SetCopyFunc(func(w io.Writer) error {
+			_, err := io.Copy(w, bytes.NewReader(v))
+			return err
+		}))
 	}
 
 	var auth smtp.Auth = nil
