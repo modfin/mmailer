@@ -17,18 +17,20 @@ func (a Address) String() string {
 }
 
 type Email struct {
-	Headers map[string]string `json:"headers"`
-	From    Address           `json:"from"`
-	To      []Address         `json:"to"`
-	Cc      []Address         `json:"cc"`
-	Subject string            `json:"subject"`
-	Text    string            `json:"text"`
-	Html    string            `json:"html"`
+	Headers     map[string]string `json:"headers"`
+	From        Address           `json:"from"`
+	To          []Address         `json:"to"`
+	Cc          []Address         `json:"cc"`
+	Subject     string            `json:"subject"`
+	Text        string            `json:"text"`
+	Html        string            `json:"html"`
+	Attachments map[string][]byte `json:"attachments"`
 }
 
 func NewEmail() Email {
 	return Email{
-		Headers: map[string]string{},
+		Headers:     map[string]string{},
+		Attachments: map[string][]byte{},
 	}
 }
 
@@ -51,24 +53,24 @@ func (p PosthookEvent) String() string {
 // Message has been successfully delivered to the receiving server.
 const EventDelivered PosthookEvent = "delivered"
 
-//Recipient's email server temporarily rejected message.
+// Recipient's email server temporarily rejected message.
 const EventDeferred PosthookEvent = "deferred"
 
-//Receiving server could not or would not accept message.
+// Receiving server could not or would not accept message.
 const EventBounce PosthookEvent = "bounce"
 
 const EventDropped PosthookEvent = "dropped"
 
-//Recipient has opened the HTML message. You need to enable Open Tracking for getting this type of event.
+// Recipient has opened the HTML message. You need to enable Open Tracking for getting this type of event.
 const EventOpen PosthookEvent = "open"
 
-//Recipient clicked on a link within the message. You need to enable Click Tracking for getting this type of event.
+// Recipient clicked on a link within the message. You need to enable Click Tracking for getting this type of event.
 const EventClick PosthookEvent = "click"
 
-//Recipient marked a message as spam.
+// Recipient marked a message as spam.
 const EventSpam PosthookEvent = "spam"
 
-//Recipient clicked on message's subscription management link. You need to enable Subscription Tracking for getting this type of event.
+// Recipient clicked on message's subscription management link. You need to enable Subscription Tracking for getting this type of event.
 const EventUnsubscribe PosthookEvent = "unsubscribe"
 
 const EventUnknown PosthookEvent = "unknown"

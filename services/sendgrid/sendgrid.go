@@ -2,11 +2,14 @@ package sendgrid
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/modfin/mmailer"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"github.com/modfin/mmailer"
+	"mime"
+	"path/filepath"
 	"strings"
 )
 
@@ -52,6 +55,19 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 			Name:    a.Name,
 			Address: a.Email,
 		})
+	}
+
+	for k, v := range email.Attachments {
+		a := mail.NewAttachment()
+		a.SetContent(base64.StdEncoding.EncodeToString(v))
+		mimeType := mime.TypeByExtension(filepath.Ext(k))
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+		a.SetType(mimeType)
+		a.SetFilename(k)
+		a.SetDisposition("attachment")
+		message.AddAttachment(a)
 	}
 
 	response, err := m.newClient().Send(message)
