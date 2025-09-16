@@ -6,17 +6,17 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/modfin/mmailer"
 	"github.com/modfin/mmailer/internal/config"
 	"github.com/modfin/mmailer/internal/svc"
+	"github.com/modfin/mmailer/services/brev"
 	"github.com/modfin/mmailer/services/generic"
 	"github.com/modfin/mmailer/services/mailjet"
 	"github.com/modfin/mmailer/services/mandrill"
 	"github.com/modfin/mmailer/services/sendgrid"
-	"github.com/labstack/echo-contrib/jaegertracing"
-	"github.com/labstack/echo-contrib/prometheus"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -44,19 +44,6 @@ func main() {
 	if config.Get().Metrics {
 		p := prometheus.NewPrometheus("echo", nil)
 		p.Use(e)
-	}
-
-	if config.Get().Tracing {
-		closer := jaegertracing.New(e, func(e echo.Context) bool {
-			switch e.Path() {
-			case "/ping":
-				return true
-			case "/metrics":
-				return false
-			}
-			return false
-		})
-		defer closer.Close()
 	}
 
 	e.GET("/ping", func(c echo.Context) error {
@@ -208,9 +195,6 @@ func loadServices() {
 		}
 
 		decorate := func(s mmailer.Service) mmailer.Service {
-			if config.Get().Tracing {
-				s = svc.WithTracing(s)
-			}
 			if config.Get().Metrics {
 				s = svc.WithMetric(s)
 			}
@@ -220,13 +204,15 @@ func loadServices() {
 			return s
 		}
 
+		posthookUrl := fmt.Sprintf("%s/posthook?key=%s&service=%s", config.Get().PublicURL, config.Get().PosthookKey, strings.ToLower(parts[0]))
+
 		switch strings.ToLower(parts[0]) {
 		case "mailjet":
 			if len(parts) != 3 {
 				log.Println("mailjet api string is not valid,", s)
 				continue
 			}
-			fmt.Printf(" -  Mailjet: add the following posthook url %s/posthook?key=%s&service=mailjet\n", config.Get().PublicURL, config.Get().PosthookKey)
+			fmt.Printf(" -  Mailjet: add the following posthook url %s\n", posthookUrl)
 
 			services = append(services, decorate(mailjet.New(parts[1], parts[2])))
 		case "mandrill":
@@ -234,23 +220,31 @@ func loadServices() {
 				log.Println("mandrill api string is not valid,", s)
 				continue
 			}
-			fmt.Printf(" - Mandrill: add the following posthook url %s/posthook?key=%s&service=mandrill\n", config.Get().PublicURL, config.Get().PosthookKey)
+			fmt.Printf(" - Mandrill: add the following posthook url %s\n", posthookUrl)
 			services = append(services, decorate(mandrill.New(parts[1])))
 		case "sendgrid":
 			if len(parts) != 2 {
 				log.Println("sendgrid api string is not valid,", s)
 				continue
 			}
-			fmt.Printf(" - Sendgrid: add the following posthook url %s/posthook?key=%s&service=sendgrid\n", config.Get().PublicURL, config.Get().PosthookKey)
+			fmt.Printf(" - Sendgrid: add the following posthook url %s\n", posthookUrl)
 			services = append(services, decorate(sendgrid.New(parts[1])))
 		case "generic":
 			u, err := url.Parse(strings.Join(parts[1:], ":"))
-			if err != nil{
-				log.Println("[Err] could not parse url, ", parts[1], " expected smtp://user:pass@host.com:port" )
+			if err != nil {
+				log.Println("[Err] could not parse url, ", parts[1], " expected smtp://user:pass@host.com:port")
 				continue
 			}
 			fmt.Printf(" - Generic: posthooks are not implmented, adding %s\n", u.String())
 			services = append(services, decorate(generic.New(u)))
+		case "brev":
+			brev, err := brev.New(parts[1:], posthookUrl)
+			if err != nil {
+				log.Println("brev api string is not valid,", s)
+				continue
+			}
+			fmt.Printf(" - Brev: add the following posthook url %s\n", posthookUrl)
+			services = append(services, decorate(brev))
 		}
 	}
 

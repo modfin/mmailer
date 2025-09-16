@@ -4,6 +4,13 @@ import (
 	"fmt"
 )
 
+type ConfigKey string
+
+const (
+	IpPool ConfigKey = "X-IpPool"
+	Vendor ConfigKey = "X-Service"
+)
+
 type Address struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
@@ -16,21 +23,29 @@ func (a Address) String() string {
 	return fmt.Sprintf("\"%s\" <%s>", a.Name, a.Email)
 }
 
+type ConfigItem struct {
+	Service string    `json:"service"`
+	Key     ConfigKey `json:"key"`
+	Value   string    `json:"value"`
+}
+
 type Email struct {
-	Headers     map[string]string `json:"headers"`
-	From        Address           `json:"from"`
-	To          []Address         `json:"to"`
-	Cc          []Address         `json:"cc"`
-	Subject     string            `json:"subject"`
-	Text        string            `json:"text"`
-	Html        string            `json:"html"`
-	Attachments map[string][]byte `json:"attachments"`
+	Headers       map[string]string `json:"headers"`
+	ServiceConfig []ConfigItem      `json:"service_config"`
+	From          Address           `json:"from"`
+	To            []Address         `json:"to"`
+	Cc            []Address         `json:"cc"`
+	Subject       string            `json:"subject"`
+	Text          string            `json:"text"`
+	Html          string            `json:"html"`
+	Attachments   map[string][]byte `json:"attachments"`
 }
 
 func NewEmail() Email {
 	return Email{
-		Headers:     map[string]string{},
-		Attachments: map[string][]byte{},
+		Headers:       map[string]string{},
+		ServiceConfig: []ConfigItem{},
+		Attachments:   map[string][]byte{},
 	}
 }
 

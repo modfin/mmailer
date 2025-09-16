@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/keighl/mandrill"
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/services"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 type Mandrill struct {
 	apiKey string
+	confer services.Configurer[*mandrill.Message]
 }
 
 var httpClient = http.Client{Timeout: 60 * time.Second}
@@ -27,6 +29,7 @@ func (m *Mandrill) newClient() *mandrill.Client {
 func New(apiKey string) *Mandrill {
 	return &Mandrill{
 		apiKey: apiKey,
+		confer: MandrillConfigurer{},
 	}
 }
 
@@ -36,6 +39,8 @@ func (m *Mandrill) Name() string {
 
 func (m *Mandrill) Send(_ context.Context, email mmailer.Email) (res []mmailer.Response, err error) {
 	message := &mandrill.Message{}
+
+	services.ApplyConfig(m.Name(), email.ServiceConfig, m.confer, message)
 
 	for _, a := range email.To {
 		message.AddRecipient(a.Email, a.Name, "to")
@@ -211,4 +216,10 @@ func (m *Mandrill) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 	}
 
 	return res, nil
+}
+
+type MandrillConfigurer struct{}
+
+func (s MandrillConfigurer) SetIpPool(poolId string, message *mandrill.Message) {
+	// no op
 }

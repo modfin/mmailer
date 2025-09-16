@@ -12,10 +12,6 @@ type AppConfig struct {
 	PosthookKey string `env:"POSTHOOK_KEY"`
 	Metrics     bool   `env:"METRICS" envDefault:"true"`
 
-	// Use JAEGER config variables for to configure tracing...
-	// https://github.com/jaegertracing/jaeger-client-go/blob/master/config/config_env.go#L30
-	Tracing bool `env:"TRACING" envDefault:"true"`
-
 	HttpInterface string `env:"HTTP_IFACE" envDefault:":8080"`
 
 	Services []string `env:"SERVICES" envSeparator:"\n"`
@@ -24,6 +20,8 @@ type AppConfig struct {
 	SelectStrategy string `env:"SELECT_STRATEGY"`
 
 	PosthookForward string `env:"POSTHOOK_FORWARD"`
+
+	Whitelist []string `env:"WHITE_LIST" envSeparator:" "`
 }
 
 var (

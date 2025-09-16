@@ -6,12 +6,14 @@ import (
 	"fmt"
 	mj "github.com/mailjet/mailjet-apiv3-go/v3"
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/services"
 	"strings"
 )
 
 type Mailjet struct {
 	apiKeyPublic  string
 	apiKeyPrivate string
+	confer        services.Configurer[*mj.MessagesV31]
 }
 
 var bannedHeaders = map[string]struct{}{
@@ -62,6 +64,7 @@ func New(apiKeyPublic, apiKeyPrivate string) *Mailjet {
 	return &Mailjet{
 		apiKeyPublic:  apiKeyPublic,
 		apiKeyPrivate: apiKeyPrivate,
+		confer:        MailjetConfigurer{},
 	}
 }
 func (m *Mailjet) Name() string {
@@ -107,6 +110,9 @@ func (m *Mailjet) Send(_ context.Context, email mmailer.Email) (res []mmailer.Re
 	message.Cc = &cc
 
 	messages := mj.MessagesV31{Info: []mj.InfoMessagesV31{message}}
+
+	services.ApplyConfig(m.Name(), email.ServiceConfig, m.confer, &messages)
+
 	response, err := m.newClient().SendMailV31(&messages)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s", m.Name(), err)
@@ -196,4 +202,10 @@ func (m *Mailjet) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 		})
 	}
 	return res, nil
+}
+
+type MailjetConfigurer struct{}
+
+func (s MailjetConfigurer) SetIpPool(poolId string, message *mj.MessagesV31) {
+	// no op
 }
