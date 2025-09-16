@@ -1,6 +1,5 @@
-FROM golang:1.19.2
-
-RUN go get -u -v github.com/codeskyblue/fswatch
+FROM golang:1.23.6
+RUN go install github.com/codeskyblue/fswatch@v0.0.0-20200812032752-892e1e55b602
 
 
 RUN mkdir -p /go/src/github.com/modfin/mmailer

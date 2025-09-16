@@ -39,9 +39,9 @@ func (c *Client) SendWith(ctx context.Context, e Email, service string) (resps [
 		return nil, errors.New("no http client i available")
 	}
 
-	req, err := http.NewRequest("POST", c.url, bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewBuffer(payload))
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errors.New("SendWith requires context"))
 	}
 
 	req.Header.Set("content-type", "application/json")

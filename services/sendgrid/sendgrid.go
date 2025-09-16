@@ -2,15 +2,13 @@ package sendgrid
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/internal/logger"
 	"github.com/modfin/mmailer/services"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"mime"
-	"path/filepath"
 	"strings"
 )
 
@@ -39,14 +37,31 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 
 	message := mail.NewSingleEmail(from, email.Subject, nil, email.Text, email.Html)
 
+	// TODO: unsure about this one
 	message.SetIPPoolID(pool_sg_us)
 
 	services.ApplyConfig(m.Name(), email.ServiceConfig, m.confer, message)
 
 	for k, v := range email.Headers {
-		message.SetHeader(k, v)
+		if k == "Reply-To" {
+			message.SetReplyTo(&mail.Email{
+				Address: v,
+			})
+		} else {
+			message.SetHeader(k, v)
+		}
 	}
 
+	if len(email.Attachments) > 0 {
+		for _, a := range email.Attachments {
+			message.AddAttachment(&mail.Attachment{
+				Content:     a.Content,
+				Filename:    a.Name,
+				Type:        a.ContentType,
+				Disposition: "attachment",
+			})
+		}
+	}
 	// Hm.. With multiple TO or CC, only one message id is returned corresponging to
 	// Message-ID header. Which is reasonable, but make things hard to track.
 	// Adding multiple personalization might be a better way, to have it act like other vendors.
@@ -62,19 +77,6 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 			Name:    a.Name,
 			Address: a.Email,
 		})
-	}
-
-	for k, v := range email.Attachments {
-		a := mail.NewAttachment()
-		a.SetContent(base64.StdEncoding.EncodeToString(v))
-		mimeType := mime.TypeByExtension(filepath.Ext(k))
-		if mimeType == "" {
-			mimeType = "application/octet-stream"
-		}
-		a.SetType(mimeType)
-		a.SetFilename(k)
-		a.SetDisposition("attachment")
-		message.AddAttachment(a)
 	}
 
 	response, err := m.newClient().Send(message)
@@ -151,6 +153,7 @@ func (m *Sendgrid) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 		case "group_unsubscribe":
 			event = mmailer.EventUnsubscribe
 		default:
+			logger.Warn(fmt.Sprintf("recieved unsupported webhook event: %s", h.Event))
 			event = mmailer.EventUnknown
 			info = h.Event
 

@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/caarlos0/env/v6"
-	"log"
+	"github.com/modfin/mmailer/internal/logger"
 	"sync"
 )
 
@@ -12,16 +12,19 @@ type AppConfig struct {
 	PosthookKey string `env:"POSTHOOK_KEY"`
 	Metrics     bool   `env:"METRICS" envDefault:"true"`
 
-	HttpInterface string `env:"HTTP_IFACE" envDefault:":8080"`
+	HttpInterface       string `env:"HTTP_IFACE" envDefault:":8081"`
+	PublicHttpInterface string `env:"PUBLIC_HTTP_IFACE" envDefault:":8080"`
+
+	FromDomainOverride string `env:"FROM_DOMAIN_OVERRIDE"`
 
 	Services []string `env:"SERVICES" envSeparator:"\n"`
 
 	RetryStrategy  string `env:"RETRY_STRATEGY"`
 	SelectStrategy string `env:"SELECT_STRATEGY"`
 
-	PosthookForward string `env:"POSTHOOK_FORWARD"`
-
-	Whitelist []string `env:"WHITE_LIST" envSeparator:" "`
+	PosthookForward string   `env:"POSTHOOK_FORWARD"`
+	Enviroment      string   `env:"ENVIRONMENT" envDefault:"DEVELOPMENT"`
+	AllowListFilter []string `env:"ALLOW_LIST" envSeparator:"," envDefault:"@modularfinance.se"`
 }
 
 var (
@@ -33,8 +36,13 @@ func Get() *AppConfig {
 	once.Do(func() {
 		cfg = AppConfig{}
 		if err := env.Parse(&cfg); err != nil {
-			log.Panic("Couldn't parse AppConfig from env: ", err)
+			logger.Error(err, "Couldn't parse AppConfig from env")
+			panic(err)
 		}
 	})
 	return &cfg
+}
+
+func (a AppConfig) IsDev() bool {
+	return a.Enviroment == "DEVELOPMENT"
 }

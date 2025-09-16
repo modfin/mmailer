@@ -1,43 +1,49 @@
 package generic
 
 import (
-	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
+	"github.com/google/uuid"
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/internal/logger"
 	"github.com/modfin/mmailer/internal/smtpx"
-	"io"
+	"github.com/modfin/mmailer/services"
 	"net/smtp"
 	"net/url"
+	"os"
 	"strings"
 )
 
+// make generic implement mmailer.Service interface by implementing Name and Send methods
 type Generic struct {
 	smtpUrl *url.URL
+	confer  services.Configurer[*smtpx.Message]
 }
 
-// smtp://user:pass@smtp.server.com:port
 func New(smtpUrl *url.URL) *Generic {
 	if smtpUrl.Port() == "" {
 		smtpUrl.Host = smtpUrl.Host + ":25"
 	}
 	return &Generic{
 		smtpUrl: smtpUrl,
+		confer:  GenericConfigurer{},
 	}
 }
-func (m *Generic) Name() string {
-	return "Generic smtp " + m.smtpUrl.Host
+
+func (g *Generic) Name() string {
+	return fmt.Sprintf("Generic smtp %s", g.smtpUrl.Host)
 }
 
-func (m *Generic) Send(ctx context.Context, email mmailer.Email) (res []mmailer.Response, err error) {
-
-	// Todo think of adding our own message id, in order to be able to track messages..
+func (g *Generic) Send(ctx context.Context, email mmailer.Email) (res []mmailer.Response, err error) {
 	message := smtpx.NewMessage()
 	for k, v := range email.Headers {
 		message.SetHeader(k, v)
 	}
 
 	message.SetHeader("From", email.From.String())
+	ctx = logger.AddToLogContext(ctx, "from", email.From.String())
 
 	var recp []string
 	if len(email.To) > 0 {
@@ -64,34 +70,84 @@ func (m *Generic) Send(ctx context.Context, email mmailer.Email) (res []mmailer.
 	if len(email.Html) > 0 {
 		message.SetBody("text/html", email.Html)
 	}
-	for k, v := range email.Attachments {
-		v := v
-		message.Attach(k, smtpx.SetCopyFunc(func(w io.Writer) error {
-			_, err := io.Copy(w, bytes.NewReader(v))
-			return err
-		}))
+
+	var files []*os.File
+	if len(email.Attachments) > 0 {
+		// create a new temp file based on attachment content
+		for _, a := range email.Attachments {
+			// create a new temp file based on attachment content
+			f, err := os.Create("/tmp/" + a.Name)
+			if err != nil {
+				logger.ErrorCtx(ctx, err, "could not create temp file")
+				continue
+			}
+
+			b64decoded, err := base64.StdEncoding.DecodeString(a.Content)
+			if err != nil {
+				logger.ErrorCtx(ctx, err, "could not decode base64 content")
+				continue
+			}
+			_, err = f.Write(b64decoded)
+			if err != nil {
+				logger.ErrorCtx(ctx, err, "could not write to temp file")
+				continue
+			}
+			files = append(files, f)
+			message.Attach(f.Name())
+		}
 	}
+
+	defer func() {
+		for _, f := range files {
+			f := f
+			err := f.Close()
+			if err != nil {
+				logger.ErrorCtx(ctx, err, "could not close temp file: "+f.Name())
+			}
+			err = os.Remove(f.Name())
+			if err != nil {
+				logger.ErrorCtx(ctx, err, "could not remove temp file: "+f.Name())
+			}
+		}
+	}()
 
 	var auth smtp.Auth = nil
 
-	user := m.smtpUrl.User.Username()
-	pass, ok := m.smtpUrl.User.Password()
+	user := g.smtpUrl.User.Username()
+	pass, ok := g.smtpUrl.User.Password()
 	if ok {
 		auth = smtp.CRAMMD5Auth(user, pass)
 	}
 
+	msgId := uuid.NewString()
+	message.SetHeader("Message-ID", msgId)
 	msg, err := message.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	err = smtp.SendMail(m.smtpUrl.Host, auth, email.From.Email, recp, msg)
+	err = smtp.SendMail(g.smtpUrl.Host, auth, email.From.Email, recp, msg)
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	var resps []mmailer.Response
+	for _, e := range email.To {
+		resps = append(resps, mmailer.Response{
+			Service:   g.Name(),
+			MessageId: msgId,
+			Email:     e.Email,
+		})
+	}
+
+	return resps, nil
 }
 
 func (m *Generic) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 	return nil, errors.New("generic smtp does not have post hooks")
+}
+
+type GenericConfigurer struct{}
+
+func (s GenericConfigurer) SetIpPool(poolId string, message *smtpx.Message) {
+	// no op
 }

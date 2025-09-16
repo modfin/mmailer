@@ -5,12 +5,12 @@ triggers:
       - '**/*.go'
     env:
       DEBUG: '1'
-    cmd: go run cmd/mmailerd/mmailerd.go serve
+    cmd: cd /go/src/spidercave/mmailer && go run ./cmd/mmailerd/mmailerd.go serve
     shell: true
-    delay: 100ms
-    stop_timeout: 500ms
-    signal: KILL
-    kill_signal: 'SIGKILL'
+    delay: 1000ms
+    stop_timeout: 5000ms
+    signal: SIGTERM
+    kill_signal: 'SIGTERM'
 watch_paths:
   - .
 watch_depth: 10

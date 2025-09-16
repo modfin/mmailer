@@ -1,4 +1,3 @@
-
 package smtpx
 
 import (
@@ -327,16 +326,14 @@ func (m *Message) Embed(filename string, settings ...FileSetting) {
 	m.embedded = m.appendFile(m.embedded, filename, settings)
 }
 
-
 func (m *Message) Bytes() ([]byte, error) {
 	var buff bytes.Buffer
 	_, err := m.WriteTo(&buff)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	return buff.Bytes(), nil
 }
-
 
 // WriteTo implements io.WriterTo. It dumps the whole message into w.
 func (m *Message) WriteTo(w io.Writer) (int64, error) {
