@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/modfin/mmailer/internal/config"
+	"github.com/modfin/mmailer/internal/logger"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -28,13 +28,6 @@ func New(selecting SelectStrategy, retry RetryStrategy, services ...Service) *Fa
 func (f *Facade) Send(ctx context.Context, email Email, preferredService string) (res []Response, err error) {
 	if len(f.Services) == 0 {
 		return nil, errors.New("facade no services to use")
-	}
-
-	if len(config.Get().Whitelist) != 0 {
-		email.To = whitelist(email.To, config.Get().Whitelist)
-		if len(email.To) == 0 {
-			return nil, nil
-		}
 	}
 
 	var service Service
@@ -67,7 +60,9 @@ func (f *Facade) Send(ctx context.Context, email Email, preferredService string)
 	if retry == nil {
 		retry = RetryNone
 	}
-	fmt.Printf("[info] Sending mail to %v through %s at [%v]\n", email.To, service.Name(), time.Now().String())
+
+	ctx = logger.AddToLogContext(ctx, "service", service.Name())
+	logger.InfoCtx(ctx, fmt.Sprintf("Sending mail to %v through %s at [%v]", email.To, service.Name(), time.Now().String()))
 	return retry(ctx, service, email, f.Services)
 }
 

@@ -16,6 +16,12 @@ type Address struct {
 	Email string `json:"email"`
 }
 
+type Attachment struct {
+	Name        string `json:"name"`
+	Content     string `json:"content"` // base64 encoded content
+	ContentType string `json:"content_type"`
+}
+
 func (a Address) String() string {
 	if len(a.Name) == 0 {
 		return a.Email
@@ -38,14 +44,13 @@ type Email struct {
 	Subject       string            `json:"subject"`
 	Text          string            `json:"text"`
 	Html          string            `json:"html"`
-	Attachments   map[string][]byte `json:"attachments"`
+	Attachments []Attachment      `json:"attachments"`
 }
 
 func NewEmail() Email {
 	return Email{
 		Headers:       map[string]string{},
 		ServiceConfig: []ConfigItem{},
-		Attachments:   map[string][]byte{},
 	}
 }
 
