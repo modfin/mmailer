@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/services"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"mime"
@@ -15,6 +16,7 @@ import (
 
 type Sendgrid struct {
 	apiKey string
+	confer services.Configurer[*mail.SGMailV3]
 }
 
 func (m *Sendgrid) newClient() *sendgrid.Client {
@@ -24,6 +26,7 @@ func (m *Sendgrid) newClient() *sendgrid.Client {
 func New(apiKey string) *Sendgrid {
 	return &Sendgrid{
 		apiKey: apiKey,
+		confer: SendgridConfigurer{},
 	}
 }
 
@@ -35,6 +38,10 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 	from := mail.NewEmail(email.From.Name, email.From.Email)
 
 	message := mail.NewSingleEmail(from, email.Subject, nil, email.Text, email.Html)
+
+	message.SetIPPoolID(pool_sg_us)
+
+	services.ApplyConfig(m.Name(), email.ServiceConfig, m.confer, message)
 
 	for k, v := range email.Headers {
 		message.SetHeader(k, v)
@@ -161,4 +168,17 @@ func (m *Sendgrid) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 		})
 	}
 	return res, nil
+}
+
+const pool_sg_us = "sg_us"
+const pool_sg_eu = "sg_eu"
+
+type SendgridConfigurer struct{}
+
+func (s SendgridConfigurer) SetIpPool(poolId string, message *mail.SGMailV3) {
+	if poolId == pool_sg_us || poolId == pool_sg_eu {
+		fmt.Println("[temporary log]", "[ip pool]", poolId)
+		message.SetIPPoolID(poolId)
+		return
+	}
 }
