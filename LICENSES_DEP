@@ -4,7 +4,6 @@ BSD-2-Clause: 1
 BSD-3-Clause: 12
 ISC: 1
 MIT: 18
-~unknown: 1
 ---
 ========================================================================
 Apache-2.0
@@ -81,11 +80,4 @@ MIT
    github.com/valyala/fasttemplate v1.2.2 //indirect
    go.uber.org/atomic v1.11.0 //indirect
    gopkg.in/yaml.v3 v3.0.1 //indirect
-
-========================================================================
-~unknown
-========================================================================
-
- [go.mod]
-   github.com/modfin/brev v0.0.0-20250417042907-0cc746d8fd74
 
