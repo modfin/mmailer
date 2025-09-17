@@ -84,6 +84,16 @@ func (b *Brev) Send(ctx context.Context, m mmailer.Email) (res []mmailer.Respons
 		bm.Headers[h] = []string{v}
 	}
 
+	if len(bm.Attachments) > 0 {
+		for _, a := range m.Attachments {
+			bm.Attachments = append(bm.Attachments, brev.Attachment{
+				Filename:    a.Name,
+				Content:     a.Content,
+				ContentType: a.ContentType,
+			})
+		}
+	}
+
 	services.ApplyConfig(b.Name(), m.ServiceConfig, b.confer, bm)
 
 	r, err := b.client.Send(ctx, bm)
