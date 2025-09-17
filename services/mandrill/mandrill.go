@@ -50,6 +50,16 @@ func (m *Mandrill) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 		message.AddRecipient(a.Email, a.Name, "cc")
 	}
 
+	if len(email.Attachments) > 0 {
+		for _, a := range email.Attachments {
+			message.Attachments = append(message.Attachments, &mandrill.Attachment{
+				Name:    a.Name,
+				Content: a.Content,
+				Type:    a.ContentType,
+			})
+		}
+	}
+
 	message.Headers = email.Headers
 	message.FromName = email.From.Name
 	message.FromEmail = email.From.Email
