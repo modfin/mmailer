@@ -76,6 +76,10 @@ func (g *Generic) Send(ctx context.Context, email mmailer.Email) (res []mmailer.
 		// create a new temp file based on attachment content
 		for _, a := range email.Attachments {
 			// create a new temp file based on attachment content
+			if strings.Contains(a.Name, "/") || strings.Contains(a.Name, "\\") || strings.Contains(a.Name, "..") {
+				logger.ErrorCtx(ctx, fmt.Errorf("invalid attachment name: %s", a.Name), "attachment name failed validation")
+				continue
+			}
 			f, err := os.Create("/tmp/" + a.Name)
 			if err != nil {
 				logger.ErrorCtx(ctx, err, "could not create temp file")
