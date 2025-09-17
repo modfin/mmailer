@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
+TARGET_ENV=${1:-dev}
+
 VERSION=$(date +%Y-%m-%dT%H.%M.%S)-$(git log -1 --pretty=format:"%h")
 
-IMG=modfin/mmailer
+if [ "$TARGET_ENV" == "prod" ]; then
+  IMG=modfin/mmailer
+else
+  IMG=modfin/mmailer-dev
+fi
+
 COMMIT_MSG=$(git log -1 --pretty=format:"%s" .)
 AUTHOR=$(git log -1 --pretty=format:"%an" .)
 
