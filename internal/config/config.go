@@ -23,7 +23,7 @@ type AppConfig struct {
 	SelectStrategy string `env:"SELECT_STRATEGY"`
 
 	PosthookForward string   `env:"POSTHOOK_FORWARD"`
-	Enviroment      string   `env:"ENVIRONMENT" envDefault:"DEVELOPMENT"`
+	Environment     string   `env:"ENVIRONMENT" envDefault:"DEVELOPMENT"`
 	AllowListFilter []string `env:"ALLOW_LIST" envSeparator:"," envDefault:"@modularfinance.se"`
 }
 
@@ -44,5 +44,5 @@ func Get() *AppConfig {
 }
 
 func (a AppConfig) IsDev() bool {
-	return a.Enviroment == "DEVELOPMENT"
+	return a.Environment == "DEVELOPMENT"
 }
