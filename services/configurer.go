@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/modfin/henry/slicez"
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/internal/logger"
 )
 
 type Configurer[T any] interface {
@@ -11,7 +12,7 @@ type Configurer[T any] interface {
 }
 
 func ApplyConfig[T any](service string, conf []mmailer.ConfigItem, configurer Configurer[T], m T) {
-	fmt.Println("[APPLYING CONFIG]")
+	logger.Info("Applying config")
 	conf = slicez.Filter(conf, func(ci mmailer.ConfigItem) bool {
 		return ci.Service == "" || ci.Service == service
 	})
@@ -19,12 +20,12 @@ func ApplyConfig[T any](service string, conf []mmailer.ConfigItem, configurer Co
 	for _, c := range conf {
 		switch c.Key {
 		case mmailer.IpPool:
-			fmt.Println("applying IpPool: ", c.Value)
+			logger.Info(fmt.Sprintf("applying IpPool: %s", c.Value))
 			configurer.SetIpPool(c.Value, m)
 		case mmailer.Vendor:
 			// no op, maybe we should just remove this item in mmailerd when we read it
 		default:
-			fmt.Println("[SKIPPING BAD CONFIG KEY]", c.Key)
+			logger.Warn(fmt.Sprintf("skipping bad config key: %s", c.Key))
 		}
 	}
 }

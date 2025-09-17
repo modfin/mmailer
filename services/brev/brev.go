@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/modfin/brev"
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/internal/logger"
 	"github.com/modfin/mmailer/services"
 )
 
@@ -84,7 +85,7 @@ func (b *Brev) Send(ctx context.Context, m mmailer.Email) (res []mmailer.Respons
 		bm.Headers[h] = []string{v}
 	}
 
-	if len(bm.Attachments) > 0 {
+	if len(m.Attachments) > 0 {
 		for _, a := range m.Attachments {
 			bm.Attachments = append(bm.Attachments, brev.Attachment{
 				Filename:    a.Name,
@@ -100,7 +101,7 @@ func (b *Brev) Send(ctx context.Context, m mmailer.Email) (res []mmailer.Respons
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("[brev] got message_id:", r.MessageId)
+	logger.Info("[brev] got message_id:", r.MessageId)
 	return []mmailer.Response{{
 		Service:   b.Name(),
 		MessageId: r.MessageId,

@@ -153,7 +153,7 @@ func (m *Sendgrid) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 		case "group_unsubscribe":
 			event = mmailer.EventUnsubscribe
 		default:
-			logger.Warn(fmt.Sprintf("recieved unsupported webhook event: %s", h.Event))
+			logger.Warn(fmt.Sprintf("received unsupported webhook event: %s", h.Event))
 			event = mmailer.EventUnknown
 			info = h.Event
 
