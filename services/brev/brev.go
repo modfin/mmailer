@@ -89,7 +89,7 @@ func (b *Brev) Send(ctx context.Context, m mmailer.Email) (res []mmailer.Respons
 		for _, a := range m.Attachments {
 			bm.Attachments = append(bm.Attachments, brev.Attachment{
 				Filename:    a.Name,
-				Content:     a.Content,
+				Content:     a.Content, // should be base64 encoded
 				ContentType: a.ContentType,
 			})
 		}

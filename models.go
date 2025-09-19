@@ -44,7 +44,7 @@ type Email struct {
 	Subject       string            `json:"subject"`
 	Text          string            `json:"text"`
 	Html          string            `json:"html"`
-	Attachments []Attachment      `json:"attachments"`
+	Attachments   []Attachment      `json:"attachments"`
 }
 
 func NewEmail() Email {

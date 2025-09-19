@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/modfin/henry/slicez"
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/internal/config"
 	"github.com/modfin/mmailer/internal/logger"
 	"github.com/modfin/mmailer/services"
 	"github.com/sendgrid/sendgrid-go"
@@ -36,9 +38,6 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 	from := mail.NewEmail(email.From.Name, email.From.Email)
 
 	message := mail.NewSingleEmail(from, email.Subject, nil, email.Text, email.Html)
-
-	// TODO: unsure about this one
-	message.SetIPPoolID(pool_sg_us)
 
 	services.ApplyConfig(m.Name(), email.ServiceConfig, m.confer, message)
 
@@ -173,13 +172,11 @@ func (m *Sendgrid) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 	return res, nil
 }
 
-const pool_sg_us = "sg_us"
-const pool_sg_eu = "sg_eu"
-
 type SendgridConfigurer struct{}
 
 func (s SendgridConfigurer) SetIpPool(poolId string, message *mail.SGMailV3) {
-	if poolId == pool_sg_us || poolId == pool_sg_eu {
+	poolNames := config.Get().GetServiceIpPoolConfig("sendgrid")
+	if slicez.Contains(poolNames, poolId) {
 		fmt.Println("[temporary log]", "[ip pool]", poolId)
 		message.SetIPPoolID(poolId)
 		return

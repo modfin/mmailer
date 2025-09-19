@@ -2,7 +2,9 @@ package config
 
 import (
 	"github.com/caarlos0/env/v6"
+	"github.com/modfin/henry/slicez"
 	"github.com/modfin/mmailer/internal/logger"
+	"strings"
 	"sync"
 )
 
@@ -17,7 +19,8 @@ type AppConfig struct {
 
 	FromDomainOverride string `env:"FROM_DOMAIN_OVERRIDE"`
 
-	Services []string `env:"SERVICES" envSeparator:"\n"`
+	Services            []string `env:"SERVICES" envSeparator:"\n"`
+	ServiceIpPoolConfig []string `env:"SERVICE_IP_POOL_CONFIG" envSeparator:"\n"`
 
 	RetryStrategy  string `env:"RETRY_STRATEGY"`
 	SelectStrategy string `env:"SELECT_STRATEGY"`
@@ -43,6 +46,20 @@ func Get() *AppConfig {
 	return &cfg
 }
 
-func (a AppConfig) IsDev() bool {
+func (a *AppConfig) IsDev() bool {
 	return a.Environment == "DEVELOPMENT"
+}
+
+func (a *AppConfig) GetServiceIpPoolConfig(service string) []string {
+	filteredPoolConfigs := slicez.Filter(a.ServiceIpPoolConfig, func(s string) bool {
+		return strings.HasPrefix(s, service)
+	})
+	var poolNames []string
+	for _, poolCfg := range filteredPoolConfigs {
+		cfgParts := strings.Split(poolCfg, ":")
+		if len(cfgParts) == 2 {
+			poolNames = append(poolNames, cfgParts[1])
+		}
+	}
+	return poolNames
 }

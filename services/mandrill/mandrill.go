@@ -54,7 +54,7 @@ func (m *Mandrill) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 		for _, a := range email.Attachments {
 			message.Attachments = append(message.Attachments, &mandrill.Attachment{
 				Name:    a.Name,
-				Content: a.Content,
+				Content: a.Content, // should be base64 encoded
 				Type:    a.ContentType,
 			})
 		}
