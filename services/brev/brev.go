@@ -148,3 +148,5 @@ type BrevConfigurer struct{}
 func (s BrevConfigurer) SetIpPool(poolId string, message *brev.Email) {
 	// no op
 }
+
+func (s BrevConfigurer) DisableTracking(message *brev.Email) {}

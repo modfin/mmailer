@@ -155,3 +155,5 @@ type GenericConfigurer struct{}
 func (s GenericConfigurer) SetIpPool(poolId string, message *smtpx.Message) {
 	// no op
 }
+
+func (s GenericConfigurer) DisableTracking(message *smtpx.Message) {}

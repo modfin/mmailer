@@ -233,3 +233,8 @@ type MandrillConfigurer struct{}
 func (s MandrillConfigurer) SetIpPool(poolId string, message *mandrill.Message) {
 	// no op
 }
+
+func (s MandrillConfigurer) DisableTracking(message *mandrill.Message) {
+	message.TrackClicks = false
+	message.TrackOpens = false
+}

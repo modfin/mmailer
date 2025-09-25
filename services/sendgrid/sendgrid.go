@@ -182,3 +182,14 @@ func (s SendgridConfigurer) SetIpPool(poolId string, message *mail.SGMailV3) {
 		return
 	}
 }
+
+func (s SendgridConfigurer) DisableTracking(message *mail.SGMailV3) {
+	disable := false
+	ts := mail.TrackingSettings{
+		ClickTracking:        &mail.ClickTrackingSetting{Enable: &disable, EnableText: &disable},
+		OpenTracking:         &mail.OpenTrackingSetting{Enable: &disable},
+		SubscriptionTracking: &mail.SubscriptionTrackingSetting{Enable: &disable},
+		GoogleAnalytics:      &mail.GaSetting{Enable: &disable},
+	}
+	message.SetTrackingSettings(&ts)
+}

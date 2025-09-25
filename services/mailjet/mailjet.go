@@ -209,3 +209,5 @@ type MailjetConfigurer struct{}
 func (s MailjetConfigurer) SetIpPool(poolId string, message *mj.MessagesV31) {
 	// no op
 }
+
+func (s MailjetConfigurer) DisableTracking(message *mj.MessagesV31) {}
