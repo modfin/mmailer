@@ -7,8 +7,9 @@ import (
 type ConfigKey string
 
 const (
-	IpPool ConfigKey = "X-IpPool"
-	Vendor ConfigKey = "X-Service"
+	IpPool          ConfigKey = "X-IpPool"
+	Vendor          ConfigKey = "X-Service"
+	DisableTracking ConfigKey = "X-Disable-Tracking"
 )
 
 type Address struct {
@@ -45,6 +46,14 @@ type Email struct {
 	Text          string            `json:"text"`
 	Html          string            `json:"html"`
 	Attachments   []Attachment      `json:"attachments"`
+}
+
+func (e *Email) DisableTracking() {
+	e.ServiceConfig = append(e.ServiceConfig, ConfigItem{
+		Service: "",
+		Key:     DisableTracking,
+		Value:   "true", // does not matter
+	})
 }
 
 func NewEmail() Email {

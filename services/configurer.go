@@ -9,6 +9,7 @@ import (
 
 type Configurer[T any] interface {
 	SetIpPool(poolId string, message T)
+	DisableTracking(message T)
 }
 
 func ApplyConfig[T any](service string, conf []mmailer.ConfigItem, configurer Configurer[T], m T) {
@@ -24,6 +25,9 @@ func ApplyConfig[T any](service string, conf []mmailer.ConfigItem, configurer Co
 			configurer.SetIpPool(c.Value, m)
 		case mmailer.Vendor:
 			// no op, maybe we should just remove this item in mmailerd when we read it
+		case mmailer.DisableTracking:
+			logger.Info("disabling tracking")
+			configurer.DisableTracking(m)
 		default:
 			logger.Warn(fmt.Sprintf("skipping bad config key: %s", c.Key))
 		}
