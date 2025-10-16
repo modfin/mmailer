@@ -1,9 +1,8 @@
 ---
-Apache-2.0: 9
-BSD-2-Clause: 1
+Apache-2.0: 7
 BSD-3-Clause: 12
 ISC: 1
-MIT: 18
+MIT: 17
 ---
 ========================================================================
 Apache-2.0
@@ -16,18 +15,8 @@ Apache-2.0
    github.com/prometheus/client_model v0.6.2 //indirect
    github.com/prometheus/common v0.66.0 //indirect
    github.com/prometheus/procfs v0.17.0 //indirect
-   github.com/uber/jaeger-client-go v2.30.0+incompatible //indirect
-   github.com/uber/jaeger-lib v2.4.1+incompatible //indirect
    gopkg.in/yaml.v2 v2.4.0 //indirect
    gopkg.in/yaml.v3 v3.0.1 //indirect
-
-========================================================================
-BSD-2-Clause
- https://spdx.org/licenses/BSD-2-Clause.html
-========================================================================
-
- [go.mod]
-   github.com/pkg/errors v0.9.1 //indirect
 
 ========================================================================
 BSD-3-Clause
@@ -78,6 +67,5 @@ MIT
    github.com/stretchr/objx v0.5.2 //indirect
    github.com/valyala/bytebufferpool v1.0.0 //indirect
    github.com/valyala/fasttemplate v1.2.2 //indirect
-   go.uber.org/atomic v1.11.0 //indirect
    gopkg.in/yaml.v3 v3.0.1 //indirect
 
