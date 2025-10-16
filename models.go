@@ -79,6 +79,9 @@ func (p PosthookEvent) String() string {
 	return string(p)
 }
 
+// Message has been successfully accepted / queued the message for delivery
+const EventProcessed PosthookEvent = "processed"
+
 // Message has been successfully delivered to the receiving server.
 const EventDelivered PosthookEvent = "delivered"
 

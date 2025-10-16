@@ -1,11 +1,11 @@
-FROM golang:1.23.6-alpine as builder
+FROM golang:1.25.2-alpine3.22 AS builder
 
 COPY . /mmailer
 WORKDIR /mmailer
 RUN go mod download
-RUN go build -o /mmailerd cmd/mmailerd/mmailerd.go
+RUN GOOS=linux GOARCH=amd64 go build -o /mmailerd cmd/mmailerd/mmailerd.go
 
-FROM --platform=linux/amd64 alpine:3.21.3
+FROM --platform=linux/amd64 alpine:3.22
 
 RUN apk add --no-cache tzdata ca-certificates
 EXPOSE 8080
@@ -13,4 +13,4 @@ RUN addgroup --system --gid 7005 mmailer && adduser --system --uid 7005 --shell 
 
 USER mmailer:mmailer
 COPY --from=builder /mmailerd /
-CMD /mmailerd
+ENTRYPOINT ["/mmailerd"]

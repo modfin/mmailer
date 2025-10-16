@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/modfin/henry/slicez"
 	"github.com/modfin/mmailer"
 	"github.com/modfin/mmailer/internal/config"
@@ -11,7 +13,6 @@ import (
 	"github.com/modfin/mmailer/services"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"strings"
 )
 
 type Sendgrid struct {
@@ -98,21 +99,23 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 }
 
 type posthook struct {
-	Email       string   `json:"email"`
-	Timestamp   int      `json:"timestamp"`
-	SMTPID      string   `json:"smtp-id"`
-	Event       string   `json:"event"`
-	Category    []string `json:"category"`
-	SgEventID   string   `json:"sg_event_id"`
-	SgMessageID string   `json:"sg_message_id"`
-	Response    string   `json:"response,omitempty"`
-	Attempt     string   `json:"attempt,omitempty"`
-	Useragent   string   `json:"useragent,omitempty"`
-	IP          string   `json:"ip,omitempty"`
-	URL         string   `json:"url,omitempty"`
-	Reason      string   `json:"reason,omitempty"`
-	Status      string   `json:"status,omitempty"`
-	AsmGroupID  int      `json:"asm_group_id,omitempty"`
+	Email                string   `json:"email"`
+	Timestamp            int      `json:"timestamp"`
+	SMTPID               string   `json:"smtp-id"`
+	Event                string   `json:"event"`
+	Category             []string `json:"category"`
+	SgEventID            string   `json:"sg_event_id"`
+	SgMessageID          string   `json:"sg_message_id"`
+	Response             string   `json:"response,omitempty"`
+	Attempt              string   `json:"attempt,omitempty"`
+	Useragent            string   `json:"useragent,omitempty"`
+	IP                   string   `json:"ip,omitempty"`
+	URL                  string   `json:"url,omitempty"`
+	Reason               string   `json:"reason,omitempty"`
+	Status               string   `json:"status,omitempty"`
+	AsmGroupID           int      `json:"asm_group_id,omitempty"`
+	Type                 string   `json:"type,omitempty"`
+	BounceClassification string   `json:"bounce_classification"`
 }
 
 func (m *Sendgrid) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
@@ -141,10 +144,12 @@ func (m *Sendgrid) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 			event = mmailer.EventClick
 		case "bounce":
 			event = mmailer.EventBounce
-			info = h.Reason
+			info = fmt.Sprintf("%s; %s; %s; %s", h.Type, h.Status, h.BounceClassification, h.Reason)
 		case "dropped":
 			event = mmailer.EventDropped
 			info = h.Reason
+		case "processed":
+			event = mmailer.EventProcessed
 		case "spamreport":
 			event = mmailer.EventSpam
 		case "unsubscribe":

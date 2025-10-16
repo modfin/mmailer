@@ -7,6 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"log/slog"
+	"net/http"
+	"net/url"
+	"os"
+	"os/signal"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -19,17 +31,6 @@ import (
 	"github.com/modfin/mmailer/services/mailjet"
 	"github.com/modfin/mmailer/services/mandrill"
 	"github.com/modfin/mmailer/services/sendgrid"
-	"io/ioutil"
-	"log"
-	"log/slog"
-	"net/http"
-	"net/url"
-	"os"
-	"os/signal"
-	"strconv"
-	"strings"
-	"syscall"
-	"time"
 )
 
 var facade *mmailer.Facade
@@ -105,31 +106,29 @@ func main() {
 			return c.String(http.StatusUnauthorized, "not authorized")
 		}
 
-		resp, err := facade.UnmarshalPosthook(c.Request())
+		hook, err := facade.UnmarshalPosthook(c.Request())
 		if err != nil {
 			logger.Error(err, "could not unmarshal posthook")
 			return c.String(http.StatusOK, "ok")
 		}
-		logger.Info(fmt.Sprintf("Posthook: %+v", resp))
+		logger.Info(fmt.Sprintf("Posthook: %+v", hook))
 		if len(config.Get().PosthookForward) == 0 {
 			logger.Info("no forwarding posthook configured, ignoring")
 			return c.String(http.StatusOK, "ok")
 		}
-		go func(hook []mmailer.Posthook) {
-			data, err := json.Marshal(hook)
-			if err != nil {
-				logger.Error(err, "could not marshal json")
-				return
-			}
+		data, err := json.Marshal(hook)
+		if err != nil {
+			logger.Error(err, "could not marshal json")
+			return c.String(http.StatusOK, "ok")
+		}
 
-			buf := bytes.NewBuffer(data)
-			resp, err := http.DefaultClient.Post(config.Get().PosthookForward, "application/json", buf)
-			if err != nil {
-				logger.Error(err, "could forward posthook")
-				return
-			}
-			_ = resp.Body.Close()
-		}(resp)
+		buf := bytes.NewBuffer(data)
+		resp, err := http.DefaultClient.Post(config.Get().PosthookForward, "application/json", buf)
+		if err != nil {
+			logger.Error(err, "could forward posthook")
+			return c.String(http.StatusInternalServerError, "internal server error")
+		}
+		_ = resp.Body.Close()
 
 		return c.String(http.StatusOK, "ok")
 	})
