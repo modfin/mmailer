@@ -1,7 +1,9 @@
 package mandrill
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,6 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"strconv"
+
+	"github.com/google/uuid"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/keighl/mandrill"
 	"github.com/modfin/mmailer"
 	"github.com/modfin/mmailer/services"
@@ -92,7 +98,7 @@ func (m *Mandrill) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 type posthook struct {
 	ID    string `json:"_id,omitempty"`
 	Event string `json:"event,omitempty"`
-	Ts    int    `json:"ts"`
+	Ts    int64  `json:"ts"`
 	Msg   struct {
 		ID       string        `json:"_id"`
 		Version  string        `json:"_version"`
@@ -221,12 +227,18 @@ func (m *Mandrill) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 			event = mmailer.EventUnknown
 			info = h.Event
 		}
+		eventId, err := createEventId(&h)
+		if err != nil {
+			return nil, fmt.Errorf("mandrill: could not create event id: %w", err)
+		}
 		res = append(res, mmailer.Posthook{
 			Service:   m.Name(),
+			EventId:   eventId,
 			MessageId: h.ID,
 			Email:     h.Msg.Email,
 			Event:     event,
 			Info:      info,
+			Timestamp: time.Unix(h.Ts, 0),
 		})
 	}
 
@@ -242,4 +254,34 @@ func (s MandrillConfigurer) SetIpPool(poolId string, message *mandrill.Message) 
 func (s MandrillConfigurer) DisableTracking(message *mandrill.Message) {
 	message.TrackClicks = false
 	message.TrackOpens = false
+}
+
+var deterministicJson = jsoniter.Config{
+	SortMapKeys: true,
+	EscapeHTML:  false,
+}.Froze()
+
+// Can't find any unique event id in the mandrill docs.
+// Try to create a deterministic one, based on some fields of the event.
+// If you add more fields to the hash, also change the namespace uuid below, so we don't get collisions.
+func createEventId(h *posthook) (string, error) {
+	var buf bytes.Buffer
+
+	buf.Write([]byte(h.ID))
+	buf.Write([]byte(h.Event))
+	buf.Write([]byte(strconv.FormatInt(h.Ts, 10)))
+
+	b, err := deterministicJson.Marshal(h.Msg.Clicks)
+	if err != nil {
+		return "", err
+	}
+	buf.Write(b)
+
+	b, err = deterministicJson.Marshal(h.Msg.Opens)
+	if err != nil {
+		return "", err
+	}
+	buf.Write(b)
+
+	return uuid.NewHash(sha256.New(), uuid.MustParse("17c1cf86-7664-4495-b862-8caa3e6d9d69"), buf.Bytes(), 4).String(), nil
 }
