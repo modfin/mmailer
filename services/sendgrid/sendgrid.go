@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/modfin/henry/slicez"
 	"github.com/modfin/mmailer"
@@ -100,7 +101,7 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 
 type posthook struct {
 	Email                string   `json:"email"`
-	Timestamp            int      `json:"timestamp"`
+	Timestamp            int64    `json:"timestamp"`
 	SMTPID               string   `json:"smtp-id"`
 	Event                string   `json:"event"`
 	Category             []string `json:"category"`
@@ -168,10 +169,12 @@ func (m *Sendgrid) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 
 		res = append(res, mmailer.Posthook{
 			Service:   m.Name(),
+			EventId:   h.SgEventID,
 			MessageId: messageId,
 			Email:     h.Email,
 			Event:     event,
 			Info:      info,
+			Timestamp: time.Unix(h.Timestamp, 0), // unfortunately, sendgrid only provides whole second precision
 		})
 	}
 	return res, nil

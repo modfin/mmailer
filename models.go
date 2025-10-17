@@ -2,6 +2,7 @@ package mmailer
 
 import (
 	"fmt"
+	"time"
 )
 
 type ConfigKey string
@@ -109,10 +110,12 @@ const EventUnknown PosthookEvent = "unknown"
 
 type Posthook struct {
 	Service   string        `json:"service"`
+	EventId   string        `json:"event_id"`
 	MessageId string        `json:"message_id"`
 	Email     string        `json:"email"`
 	Event     PosthookEvent `json:"event"`
 	Info      string        `json:"info,omitempty"`
+	Timestamp time.Time     `json:"timestamp"`
 }
 
 func (r Posthook) Id() string {
