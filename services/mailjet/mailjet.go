@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	mj "github.com/mailjet/mailjet-apiv3-go/v3"
 	"github.com/modfin/mmailer"
 	"github.com/modfin/mmailer/services"
-	"strings"
 )
 
 type Mailjet struct {
@@ -69,6 +70,10 @@ func New(apiKeyPublic, apiKeyPrivate string) *Mailjet {
 }
 func (m *Mailjet) Name() string {
 	return "mailjet"
+}
+
+func (*Mailjet) CanSend(email mmailer.Email) bool {
+	return true // per domain keys not implemented
 }
 
 func (m *Mailjet) Send(_ context.Context, email mmailer.Email) (res []mmailer.Response, err error) {
