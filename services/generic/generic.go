@@ -5,15 +5,16 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/smtp"
+	"net/url"
+	"os"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/modfin/mmailer"
 	"github.com/modfin/mmailer/internal/logger"
 	"github.com/modfin/mmailer/internal/smtpx"
 	"github.com/modfin/mmailer/services"
-	"net/smtp"
-	"net/url"
-	"os"
-	"strings"
 )
 
 // make generic implement mmailer.Service interface by implementing Name and Send methods
@@ -34,6 +35,10 @@ func New(smtpUrl *url.URL) *Generic {
 
 func (g *Generic) Name() string {
 	return fmt.Sprintf("Generic smtp %s", g.smtpUrl.Host)
+}
+
+func (g *Generic) CanSend(email mmailer.Email) bool {
+	return true // per domain keys not implemented
 }
 
 func (g *Generic) Send(ctx context.Context, email mmailer.Email) (res []mmailer.Response, err error) {

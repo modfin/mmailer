@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/keighl/mandrill"
-	"github.com/modfin/mmailer"
-	"github.com/modfin/mmailer/services"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/keighl/mandrill"
+	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/services"
 )
 
 type Mandrill struct {
@@ -35,6 +36,10 @@ func New(apiKey string) *Mandrill {
 
 func (m *Mandrill) Name() string {
 	return "mandrill"
+}
+
+func (*Mandrill) CanSend(email mmailer.Email) bool {
+	return true // per domain keys not implemented
 }
 
 func (m *Mandrill) Send(_ context.Context, email mmailer.Email) (res []mmailer.Response, err error) {

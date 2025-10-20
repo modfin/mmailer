@@ -3,6 +3,7 @@ package sendgrid
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -16,23 +17,32 @@ import (
 )
 
 type Sendgrid struct {
-	apiKey string
-	confer services.Configurer[*mail.SGMailV3]
+	apiKeys []mmailer.ApiKey
+	confer  services.Configurer[*mail.SGMailV3]
 }
 
-func (m *Sendgrid) newClient() *sendgrid.Client {
-	return sendgrid.NewSendClient(m.apiKey)
+func (m *Sendgrid) newClient(addr string) (*sendgrid.Client, error) {
+	k, ok := mmailer.KeyByEmailDomain(m.apiKeys, addr)
+	if !ok {
+		return nil, errors.New("sendgrid: no api key found for " + addr)
+	}
+	return sendgrid.NewSendClient(k.Key), nil
 }
 
-func New(apiKey string) *Sendgrid {
+func New(apiKeys []mmailer.ApiKey) *Sendgrid {
 	return &Sendgrid{
-		apiKey: apiKey,
-		confer: SendgridConfigurer{},
+		apiKeys: apiKeys,
+		confer:  SendgridConfigurer{},
 	}
 }
 
 func (m *Sendgrid) Name() string {
 	return "sendgrid"
+}
+
+func (m *Sendgrid) CanSend(email mmailer.Email) bool {
+	_, ok := mmailer.KeyByEmailDomain(m.apiKeys, email.From.Email)
+	return ok
 }
 
 func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.Response, err error) {
@@ -78,8 +88,11 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 			Address: a.Email,
 		})
 	}
-
-	response, err := m.newClient().Send(message)
+	client, err := m.newClient(email.From.Email)
+	if err != nil {
+		return nil, err
+	}
+	response, err := client.Send(message)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s", m.Name(), err)
 	}

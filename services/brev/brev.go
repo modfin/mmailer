@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/modfin/brev"
 	"github.com/modfin/mmailer"
 	"github.com/modfin/mmailer/internal/logger"
@@ -55,6 +56,10 @@ func New(configParts []string, posthookUrl string) (*Brev, error) {
 
 func (b *Brev) Name() string {
 	return "brev"
+}
+
+func (*Brev) CanSend(email mmailer.Email) bool {
+	return true // per domain keys not implemented
 }
 
 func (b *Brev) Send(ctx context.Context, m mmailer.Email) (res []mmailer.Response, err error) {

@@ -1,11 +1,12 @@
 package config
 
 import (
+	"strings"
+	"sync"
+
 	"github.com/caarlos0/env/v6"
 	"github.com/modfin/henry/slicez"
 	"github.com/modfin/mmailer/internal/logger"
-	"strings"
-	"sync"
 )
 
 type AppConfig struct {
@@ -19,8 +20,9 @@ type AppConfig struct {
 
 	FromDomainOverride string `env:"FROM_DOMAIN_OVERRIDE"`
 
-	Services            []string `env:"SERVICES" envSeparator:"\n"`
-	ServiceIpPoolConfig []string `env:"SERVICE_IP_POOL_CONFIG" envSeparator:"\n"`
+	Services             []string `env:"SERVICES" envSeparator:"\n"`
+	ServiceIpPoolConfig  []string `env:"SERVICE_IP_POOL_CONFIG" envSeparator:"\n"`
+	ServiceDomainApiKeys []string `env:"SERVICE_DOMAIN_API_KEYS" envSeparator:"\n"`
 
 	RetryStrategy  string `env:"RETRY_STRATEGY"`
 	SelectStrategy string `env:"SELECT_STRATEGY"`

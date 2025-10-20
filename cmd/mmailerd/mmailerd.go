@@ -22,6 +22,7 @@ import (
 	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/modfin/henry/slicez"
 	"github.com/modfin/mmailer"
 	"github.com/modfin/mmailer/internal/config"
 	"github.com/modfin/mmailer/internal/logger"
@@ -202,6 +203,23 @@ func loadServices() {
 		retry = mmailer.RetryNone
 	}
 
+	domainApiKeys := make(map[string][]mmailer.ServiceApiKey)
+
+	for _, k := range config.Get().ServiceDomainApiKeys {
+		parts := strings.Split(k, ":")
+		if len(parts) != 3 {
+			logger.Warn(fmt.Sprintf("couldn't parse row of SERVICE_DOMAIN_API_KEYS, '%s'", k))
+		}
+		key := mmailer.ServiceApiKey{
+			Service: strings.ToLower(parts[0]),
+			ApiKey: mmailer.ApiKey{
+				Domain: strings.ToLower(parts[1]),
+				Key:    parts[2],
+			},
+		}
+		domainApiKeys[key.Service] = append(domainApiKeys[key.Service], key)
+	}
+
 	var services []mmailer.Service
 	logger.Info("Services:")
 	var weighted = strategyName == "weighted"
@@ -235,7 +253,8 @@ func loadServices() {
 
 		posthookUrl := fmt.Sprintf("%s/posthook?key=%s&service=%s", config.Get().PublicURL, config.Get().PosthookKey, strings.ToLower(parts[0]))
 
-		switch strings.ToLower(parts[0]) {
+		service := strings.ToLower(parts[0])
+		switch service {
 		case "mailjet":
 			if len(parts) != 3 {
 				logger.Warn(fmt.Sprintf("mailjet api string is not valid, %s", s))
@@ -252,12 +271,30 @@ func loadServices() {
 			logger.Info(fmt.Sprintf(" - Mandrill: add the following posthook url %s", posthookUrl))
 			services = append(services, decorate(mandrill.New(parts[1])))
 		case "sendgrid":
-			if len(parts) != 2 {
+			if len(parts) < 1 || len(parts) > 2 {
 				logger.Warn("sendgrid api string is not valid,", s)
 				continue
 			}
+			apiKeys := slicez.Map(domainApiKeys[service], func(k mmailer.ServiceApiKey) mmailer.ApiKey {
+				return k.ApiKey
+			})
+			if len(parts) == 2 {
+				apiKeys = append(apiKeys, mmailer.ApiKey{
+					Domain: mmailer.ApiKeyAnyDomain,
+					Key:    parts[1],
+				})
+				logger.Info(" - Sendgrid: key enabled: AnyDomain")
+			}
+			for _, k := range domainApiKeys[service] {
+				logger.Info(fmt.Sprintf(" - Sendgrid: key enabled: %s", k.Domain))
+			}
+			if len(apiKeys) == 0 {
+				logger.Warn(" - Sendgrid: disabled, no api keys provided")
+				continue
+			}
+
 			logger.Info(fmt.Sprintf(" - Sendgrid: add the following posthook url %s", posthookUrl))
-			services = append(services, decorate(sendgrid.New(parts[1])))
+			services = append(services, decorate(sendgrid.New(apiKeys)))
 		case "brev":
 			brev, err := brev.New(parts[1:], posthookUrl)
 			if err != nil {

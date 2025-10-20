@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/modfin/mmailer/internal/logger"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/modfin/henry/slicez"
+	"github.com/modfin/mmailer/internal/logger"
 )
 
 type Facade struct {
@@ -26,7 +28,12 @@ func New(selecting SelectStrategy, retry RetryStrategy, services ...Service) *Fa
 }
 
 func (f *Facade) Send(ctx context.Context, email Email, preferredService string) (res []Response, err error) {
-	if len(f.Services) == 0 {
+
+	services := slicez.Filter(f.Services, func(s Service) bool {
+		return s.CanSend(email)
+	})
+
+	if len(services) == 0 {
 		return nil, errors.New("facade no services to use")
 	}
 
@@ -35,7 +42,7 @@ func (f *Facade) Send(ctx context.Context, email Email, preferredService string)
 	// If service is specified
 	if len(preferredService) > 0 {
 		preferredService = strings.ToLower(preferredService)
-		for _, s := range f.Services {
+		for _, s := range services {
 			if s.Name() == preferredService {
 				service = s
 				break
@@ -49,7 +56,7 @@ func (f *Facade) Send(ctx context.Context, email Email, preferredService string)
 		if strategy == nil {
 			strategy = SelectRandom
 		}
-		service = strategy(f.Services)
+		service = strategy(services)
 	}
 
 	if service == nil {
@@ -63,7 +70,7 @@ func (f *Facade) Send(ctx context.Context, email Email, preferredService string)
 
 	ctx = logger.AddToLogContext(ctx, "service", service.Name())
 	logger.InfoCtx(ctx, fmt.Sprintf("Sending mail to %v through %s at [%v]", email.To, service.Name(), time.Now().String()))
-	return retry(ctx, service, email, f.Services)
+	return retry(ctx, service, email, services)
 }
 
 func (f *Facade) UnmarshalPosthook(r *http.Request) (res []Posthook, err error) {
