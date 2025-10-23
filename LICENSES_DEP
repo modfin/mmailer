@@ -1,8 +1,8 @@
 ---
-Apache-2.0: 7
+Apache-2.0: 9
 BSD-3-Clause: 12
 ISC: 1
-MIT: 17
+MIT: 18
 ---
 ========================================================================
 Apache-2.0
@@ -12,6 +12,8 @@ Apache-2.0
  [go.mod]
    github.com/opentracing/opentracing-go v1.2.0
    github.com/prometheus/client_golang v1.23.0
+   github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd //indirect
+   github.com/modern-go/reflect2 v1.0.2 //indirect
    github.com/prometheus/client_model v0.6.2 //indirect
    github.com/prometheus/common v0.66.0 //indirect
    github.com/prometheus/procfs v0.17.0 //indirect
@@ -52,6 +54,7 @@ MIT
 
  [go.mod]
    github.com/caarlos0/env/v6 v6.10.1
+   github.com/json-iterator/go v1.1.12
    github.com/labstack/echo-contrib v0.17.4
    github.com/labstack/echo/v4 v4.13.4
    github.com/mailjet/mailjet-apiv3-go/v3 v3.2.0
