@@ -205,18 +205,37 @@ func loadServices() {
 
 	domainApiKeys := make(map[string][]mmailer.ServiceApiKey)
 
-	for _, k := range config.Get().ServiceDomainApiKeys {
+	parseServiceDomainKey := func(k string) (mmailer.ServiceApiKey, error) {
 		parts := strings.Split(k, ":")
-		if len(parts) != 3 {
-			logger.Warn(fmt.Sprintf("couldn't parse row of SERVICE_DOMAIN_API_KEYS, '%s'", k))
+		if len(parts) < 3 {
+			return mmailer.ServiceApiKey{}, fmt.Errorf("3 colon separated parts required, got %d", len(parts))
 		}
 		key := mmailer.ServiceApiKey{
 			Service: strings.ToLower(parts[0]),
 			ApiKey: mmailer.ApiKey{
 				Domain: strings.ToLower(parts[1]),
 				Key:    parts[2],
+				Props:  make(map[string]string),
 			},
 		}
+		parts = parts[3:]
+		for _, p := range parts {
+			ps := strings.Split(p, "=")
+			if len(ps) != 2 || strings.TrimSpace(ps[0]) == "" || strings.TrimSpace(ps[1]) == "" {
+				return mmailer.ServiceApiKey{}, fmt.Errorf("each property has to be of the format 'key=value': got '%s'", p)
+			}
+			key.Props[ps[0]] = ps[1]
+		}
+		return key, nil
+	}
+
+	for _, k := range config.Get().ServiceDomainApiKeys {
+		key, err := parseServiceDomainKey(k)
+		if err != nil {
+			logger.Warn(fmt.Sprintf("couldn't parse row of SERVICE_DOMAIN_API_KEYS, '%s': %v", k, err))
+			continue
+		}
+
 		domainApiKeys[key.Service] = append(domainApiKeys[key.Service], key)
 	}
 

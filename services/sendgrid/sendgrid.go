@@ -26,7 +26,15 @@ func (m *Sendgrid) newClient(addr string) (*sendgrid.Client, error) {
 	if !ok {
 		return nil, errors.New("sendgrid: no api key found for " + addr)
 	}
-	return sendgrid.NewSendClient(k.Key), nil
+	client := sendgrid.NewSendClient(k.Key)
+	if k.Props != nil && k.Props["region"] == "eu" {
+		var err error
+		client.Request, err = sendgrid.SetDataResidency(client.Request, "eu")
+		if err != nil {
+			return nil, err
+		}
+	}
+	return client, nil
 }
 
 func New(apiKeys []mmailer.ApiKey) *Sendgrid {

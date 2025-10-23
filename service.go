@@ -23,6 +23,7 @@ type ServiceApiKey struct {
 type ApiKey struct {
 	Domain string
 	Key    string
+	Props  map[string]string
 }
 
 const ApiKeyAnyDomain = ""
