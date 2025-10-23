@@ -260,6 +260,11 @@ func loadServices() {
 			if len(config.Get().AllowListFilter) > 0 {
 				logger.Info(fmt.Sprintf("using allow list filter: %v", config.Get().AllowListFilter))
 				s = svc.WithAllowListFilter(s, config.Get().AllowListFilter)
+				if !config.Get().IsDev() {
+					logger.Warn("allow list filter is active in prod mode")
+				}
+			} else {
+				logger.Info("using allow list filter: none")
 			}
 			if config.Get().Metrics {
 				s = svc.WithMetric(s)
@@ -306,6 +311,9 @@ func loadServices() {
 			}
 			for _, k := range domainApiKeys[service] {
 				logger.Info(fmt.Sprintf(" - Sendgrid: key enabled: %s", k.Domain))
+				for k, v := range k.Props {
+					logger.Info(fmt.Sprintf("   - Sendgrid: property: %s=%s", k, v))
+				}
 			}
 			if len(apiKeys) == 0 {
 				logger.Warn(" - Sendgrid: disabled, no api keys provided")
