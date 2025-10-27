@@ -29,6 +29,7 @@ import (
 	"github.com/modfin/mmailer/internal/svc"
 	"github.com/modfin/mmailer/services/brev"
 	"github.com/modfin/mmailer/services/generic"
+	"github.com/modfin/mmailer/services/mailgun"
 	"github.com/modfin/mmailer/services/mailjet"
 	"github.com/modfin/mmailer/services/mandrill"
 	"github.com/modfin/mmailer/services/sendgrid"
@@ -294,6 +295,13 @@ func loadServices() {
 			}
 			logger.Info(fmt.Sprintf(" - Mandrill: add the following posthook url %s", posthookUrl))
 			services = append(services, decorate(mandrill.New(parts[1])))
+		case "mailgun":
+			if len(parts) != 3 {
+				logger.Warn("mailgun api string is not valid,", s)
+				continue
+			}
+			logger.Info(fmt.Sprintf(" - Mailgun: add the following posthook url %s", posthookUrl))
+			services = append(services, decorate(mailgun.New(parts[1], parts[2])))
 		case "sendgrid":
 			if len(parts) < 1 || len(parts) > 2 {
 				logger.Warn("sendgrid api string is not valid,", s)
