@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/mailgun/mailgun-go/v5"
@@ -19,17 +20,17 @@ import (
 )
 
 type Mailgun struct {
-	client *mailgun.Client
-	confer services.Configurer[*mailgun.PlainMessage]
+	apiKeys           []mmailer.ApiKey
+	webhookSigningKey string
+	confer            services.Configurer[*mailgun.PlainMessage]
 }
 
-func New(apiKey string, webhookSigningKey string) *Mailgun {
+func New(apiKeys []mmailer.ApiKey, webhookSigningKey string) *Mailgun {
 	mg := &Mailgun{
-		client: mailgun.NewMailgun(apiKey),
-		confer: configurer{},
+		apiKeys:           apiKeys,
+		webhookSigningKey: webhookSigningKey,
+		confer:            configurer{},
 	}
-	mg.client.SetWebhookSigningKey(webhookSigningKey)
-	_ = mg.client.SetAPIBase(mailgun.APIBaseEU)
 	return mg
 }
 
@@ -50,10 +51,23 @@ func (m *Mailgun) CanSend(e mmailer.Email) bool {
 			return false
 		}
 	}
-	if !strings.HasSuffix(e.From.Email, "strictlog.modfin.se") {
-		return false
+	_, ok := mmailer.KeyByEmailDomain(m.apiKeys, e.From.Email)
+	return ok
+}
+
+func (m *Mailgun) newClient(addr string) (*mailgun.Client, error) {
+	k, ok := mmailer.KeyByEmailDomain(m.apiKeys, addr)
+	if !ok {
+		return nil, errors.New("sendgrid: no api key found for " + addr)
 	}
-	return true
+	client := mailgun.NewMailgun(k.Key)
+	if k.Props != nil && k.Props["region"] == "eu" {
+		err := client.SetAPIBase(mailgun.APIBaseEU)
+		if err != nil {
+			return nil, fmt.Errorf("failed to set EU region")
+		}
+	}
+	return client, nil
 }
 
 func (m *Mailgun) Send(ctx context.Context, e mmailer.Email) ([]mmailer.Response, error) {
@@ -66,7 +80,10 @@ func (m *Mailgun) Send(ctx context.Context, e mmailer.Email) ([]mmailer.Response
 	if domain == "" {
 		return nil, fmt.Errorf("mailgun: failed to get email domain: %v", from.Address)
 	}
-
+	client, err := m.newClient(domain)
+	if err != nil {
+		return nil, fmt.Errorf("mailgun: failed to create client: %w", err)
+	}
 	to := slicez.Map(e.To, func(a mmailer.Address) string {
 		return a.String()
 	})
@@ -92,7 +109,7 @@ func (m *Mailgun) Send(ctx context.Context, e mmailer.Email) ([]mmailer.Response
 		msg.AddBufferAttachment(a.Name, b)
 	}
 
-	resp, err := m.client.Send(ctx, msg)
+	resp, err := client.Send(ctx, msg)
 	if err != nil {
 		return nil, fmt.Errorf("mailgun: failed to send email: %w", err)
 	}
@@ -115,7 +132,9 @@ func (m *Mailgun) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 	if err := jsoniter.Unmarshal(body, &webhook); err != nil {
 		return nil, err
 	}
-	verified, err := m.client.VerifyWebhookSignature(webhook.Signature)
+	client := mailgun.NewMailgun("") // api key is not used for VerifyWebhookSignature
+	client.SetWebhookSigningKey(m.webhookSigningKey)
+	verified, err := client.VerifyWebhookSignature(webhook.Signature)
 	if err != nil {
 		return nil, fmt.Errorf("mailgun: failed to verify signature: %w", err)
 	}
@@ -146,6 +165,7 @@ func (m *Mailgun) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 		h.Event = mmailer.EventDelivered
 		h.MessageId = e.Message.Headers.MessageID
 		h.Email = e.Recipient
+		h.Info = infoString(false, "", "", e.DeliveryStatus)
 
 	case *events.Opened:
 		h.Event = mmailer.EventOpen
@@ -156,23 +176,72 @@ func (m *Mailgun) UnmarshalPosthook(body []byte) ([]mmailer.Posthook, error) {
 		switch e.Severity {
 		case "permanent":
 			h.Event = mmailer.EventBounce
-
-		case "temporary":
-			h.Event = mmailer.EventDeferred
 			if e.Reason == "suppress-bounce" {
 				h.Event = mmailer.EventDropped
 			}
+		case "temporary":
+			h.Event = mmailer.EventDeferred
 		}
-
 		h.MessageId = e.Message.Headers.MessageID
 		h.Email = e.Recipient
-		h.Info = fmt.Sprintf("%s; %d; %s", e.Reason, e.DeliveryStatus.Code, e.DeliveryStatus.Description)
+		h.Info = infoString(true, e.Reason, e.Severity, e.DeliveryStatus)
+
 	default:
 		logger.Warn(fmt.Sprintf("received unsupported webhook event: %s", h.Event))
 		return nil, nil
 	}
 
 	return []mmailer.Posthook{h}, nil
+}
+
+func infoString(fail bool, reason, severity string, st events.DeliveryStatus) string {
+	latency := time.Duration(st.SessionSeconds * float64(time.Second)).Truncate(time.Millisecond)
+
+	var words []string
+	if st.Code != 0 {
+		words = append(words, fmt.Sprintf("%d", st.Code))
+	}
+	if st.EnhancedCode != "" {
+		words = append(words, st.EnhancedCode)
+	}
+	if !fail {
+		words = append(words, st.Message)
+	}
+	if st.MxHost != "" {
+		words = append(words, st.MxHost)
+	}
+	if latency > time.Millisecond {
+		words = append(words, latency.String())
+	}
+	if reason != "" {
+		words = append(words, reason)
+	}
+	if severity != "" {
+		words = append(words, severity)
+	}
+
+	var flags []string
+	if st.AttemptNo > 0 {
+		flags = append(flags, fmt.Sprintf("attempt:%d", st.AttemptNo))
+	}
+	if st.Utf8 != nil && *st.Utf8 {
+		flags = append(flags, "utf8")
+	}
+	if st.TLS != nil && *st.TLS {
+		flags = append(flags, "tls")
+	}
+	if st.CertificateVerified != nil && *st.CertificateVerified {
+		flags = append(flags, "certificate-verified")
+	}
+	if len(flags) > 0 {
+		words = append(words, fmt.Sprintf("[%s]", strings.Join(flags, ", ")))
+	}
+
+	msg := strings.Join(words, " ")
+	if fail {
+		msg += ": " + st.Message
+	}
+	return msg
 }
 
 type configurer struct{}
@@ -182,5 +251,5 @@ func (s configurer) SetIpPool(poolId string, message *mailgun.PlainMessage) {
 }
 
 func (s configurer) DisableTracking(message *mailgun.PlainMessage) {
-	message.SetTracking(false)
+	message.SetTracking(false) // untested
 }

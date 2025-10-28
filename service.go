@@ -32,11 +32,10 @@ func KeyByEmailDomain(apiKeys []ApiKey, emailFrom string) (ApiKey, bool) {
 	domain := ""
 	if from, err := mail.ParseAddress(emailFrom); err == nil {
 		parts := strings.Split(from.Address, "@")
-		if len(parts) == 2 {
-			d := strings.ToLower(strings.TrimSpace(parts[1]))
-			if d != "" {
-				domain = d
-			}
+		domain, _ := slicez.Last(parts)
+		d := strings.ToLower(strings.TrimSpace(domain))
+		if d != "" {
+			domain = d
 		}
 	}
 	domainKey, ok := slicez.Find(apiKeys, func(e ApiKey) bool {

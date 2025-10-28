@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -296,12 +297,32 @@ func loadServices() {
 			logger.Info(fmt.Sprintf(" - Mandrill: add the following posthook url %s", posthookUrl))
 			services = append(services, decorate(mandrill.New(parts[1])))
 		case "mailgun":
-			if len(parts) != 3 {
+			if len(parts) != 2 {
 				logger.Warn("mailgun api string is not valid,", s)
 				continue
 			}
+			apiKeys := slicez.Map(domainApiKeys[service], func(k mmailer.ServiceApiKey) mmailer.ApiKey {
+				return k.ApiKey
+			})
+			for _, k := range domainApiKeys[service] {
+				logger.Info(fmt.Sprintf(" - Mailgun: key enabled: %s", k.Domain))
+				for k, v := range k.Props {
+					logger.Info(fmt.Sprintf("   - Mailgun: property: %s=%s", k, v))
+				}
+			}
+			if len(apiKeys) == 0 {
+				logger.Warn(" - Mailgun: disabled, no api keys provided")
+				continue
+			}
+			webhookSigningKey := parts[1]
+			_, err := hex.DecodeString(webhookSigningKey)
+			if err != nil {
+				logger.Warn(" - Mailgun: disabled, bad webhook signing key")
+				continue
+			}
+
 			logger.Info(fmt.Sprintf(" - Mailgun: add the following posthook url %s", posthookUrl))
-			services = append(services, decorate(mailgun.New(parts[1], parts[2])))
+			services = append(services, decorate(mailgun.New(apiKeys, webhookSigningKey)))
 		case "sendgrid":
 			if len(parts) < 1 || len(parts) > 2 {
 				logger.Warn("sendgrid api string is not valid,", s)
