@@ -57,7 +57,10 @@ func (m *Sendgrid) CanSend(email mmailer.Email) bool {
 func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.Response, err error) {
 	from := mail.NewEmail(email.From.Name, email.From.Email)
 
-	message := mail.NewSingleEmail(from, email.Subject, nil, email.Text, email.Html)
+	// Force sendgrid to send HTML Body as UTF8 by appending a "word joiner" (U+2060)
+	// otherwise sendgrid encodes the HTML as iso-8859-1 if the HTML lacks any Unicode characters.
+	// which should be fine, but for some reason this causes gmail to clip the email.
+	message := mail.NewSingleEmail(from, email.Subject, nil, email.Text, email.Html+"\u2060")
 
 	services.ApplyConfig(m.Name(), email.ServiceConfig, m.confer, message)
 
