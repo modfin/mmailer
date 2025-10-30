@@ -22,20 +22,24 @@ type Sendgrid struct {
 	confer  services.Configurer[*mail.SGMailV3]
 }
 
-func (m *Sendgrid) newClient(addr string) (*sendgrid.Client, error) {
+func (m *Sendgrid) newClient(addr string) (*sendgrid.Client, bool, error) {
 	k, ok := mmailer.KeyByEmailDomain(m.apiKeys, addr)
 	if !ok {
-		return nil, errors.New("sendgrid: no api key found for " + addr)
+		return nil, false, errors.New("sendgrid: no api key found for " + addr)
 	}
 	client := sendgrid.NewSendClient(k.Key)
 	if k.Props != nil && k.Props["region"] == "eu" {
 		var err error
 		client.Request, err = sendgrid.SetDataResidency(client.Request, "eu")
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
-	return client, nil
+	unicodeHack := false
+	if k.Props != nil && k.Props["unicode-hack"] == "true" {
+		unicodeHack = true
+	}
+	return client, unicodeHack, nil
 }
 
 func New(apiKeys []mmailer.ApiKey) *Sendgrid {
@@ -55,9 +59,21 @@ func (m *Sendgrid) CanSend(email mmailer.Email) bool {
 }
 
 func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.Response, err error) {
-	from := mail.NewEmail(email.From.Name, email.From.Email)
+	client, unicodeHack, err := m.newClient(email.From.Email)
+	if err != nil {
+		return nil, err
+	}
+	html := email.Html
 
-	message := mail.NewSingleEmail(from, email.Subject, nil, email.Text, email.Html)
+	if unicodeHack {
+		// Force sendgrid to send HTML Body as UTF8 by appending a "word joiner" (U+2060)
+		// otherwise sendgrid encodes the HTML as iso-8859-1 if the HTML lacks any Unicode characters.
+		// which should be fine, but for some reason this causes gmail to clip the email.
+		html += "\u2060"
+	}
+
+	from := mail.NewEmail(email.From.Name, email.From.Email)
+	message := mail.NewSingleEmail(from, email.Subject, nil, email.Text, html)
 
 	services.ApplyConfig(m.Name(), email.ServiceConfig, m.confer, message)
 
@@ -96,10 +112,6 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 			Name:    a.Name,
 			Address: a.Email,
 		})
-	}
-	client, err := m.newClient(email.From.Email)
-	if err != nil {
-		return nil, err
 	}
 	response, err := client.Send(message)
 	if err != nil {
