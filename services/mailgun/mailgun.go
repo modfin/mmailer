@@ -41,7 +41,7 @@ func (m *Mailgun) Name() string {
 func (m *Mailgun) CanSend(e mmailer.Email) bool {
 	for _, a := range e.Attachments {
 		// TODO Can't find the option to set attachment content type in the mailgun api, can it be fixed?
-		if a.ContentType == "" || a.ContentType == "application/octet-stream" {
+		if a.ContentType != "" && a.ContentType != "application/octet-stream" {
 			logger.Warn(
 				"mailgun: unsupported attachment content-type",
 				"email", e.To,
@@ -58,7 +58,7 @@ func (m *Mailgun) CanSend(e mmailer.Email) bool {
 func (m *Mailgun) newClient(addr string) (*mailgun.Client, error) {
 	k, ok := mmailer.KeyByEmailDomain(m.apiKeys, addr)
 	if !ok {
-		return nil, errors.New("sendgrid: no api key found for " + addr)
+		return nil, errors.New("mailgun: no api key found for " + addr)
 	}
 	client := mailgun.NewMailgun(k.Key)
 	if k.Props != nil && k.Props["region"] == "eu" {
@@ -75,19 +75,18 @@ func (m *Mailgun) Send(ctx context.Context, e mmailer.Email) ([]mmailer.Response
 	if err != nil {
 		return nil, fmt.Errorf("mailgun: failed to parse email: %w", err)
 	}
-	parts := strings.Split(from.Address, "@")
-	domain, _ := slicez.Last(parts)
-	if domain == "" {
-		return nil, fmt.Errorf("mailgun: failed to get email domain: %v", from.Address)
-	}
-	client, err := m.newClient(domain)
+	client, err := m.newClient(from.Address)
 	if err != nil {
 		return nil, fmt.Errorf("mailgun: failed to create client: %w", err)
 	}
 	to := slicez.Map(e.To, func(a mmailer.Address) string {
 		return a.String()
 	})
-
+	parts := strings.Split(from.Address, "@")
+	domain, _ := slicez.Last(parts)
+	if domain == "" {
+		return nil, fmt.Errorf("mailgun: failed to get email domain: %v", from.Address)
+	}
 	msg := mailgun.NewMessage(domain, from.String(), e.Subject, e.Text, to...)
 	services.ApplyConfig(m.Name(), e.ServiceConfig, m.confer, msg)
 

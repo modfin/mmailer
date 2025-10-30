@@ -91,11 +91,11 @@ func main() {
 			parts[1] = strings.TrimSpace(config.Get().FromDomainOverride)
 			mail.From.Email = strings.Join(parts, "@")
 		}
-		preferredService := c.QueryParam("X-Service")
+		preferredService := c.Request().Header.Get("X-Service")
 		if len(preferredService) > 0 {
-			ctx = logger.AddToLogContext(ctx, "preferredService", preferredService)
+			ctx = logger.AddToLogContext(ctx, "preferred_service", preferredService)
 		}
-		res, err := facade.Send(ctx, mail, c.Request().Header.Get("X-Service"))
+		res, err := facade.Send(ctx, mail, preferredService)
 		if err != nil {
 			logger.ErrorCtx(ctx, err, "could not send email")
 			return c.String(http.StatusInternalServerError, "could not send email")

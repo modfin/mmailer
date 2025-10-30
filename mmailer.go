@@ -3,11 +3,9 @@ package mmailer
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/modfin/henry/slicez"
 	"github.com/modfin/mmailer/internal/logger"
@@ -68,8 +66,13 @@ func (f *Facade) Send(ctx context.Context, email Email, preferredService string)
 		retry = RetryNone
 	}
 
+	to := slicez.Map(email.To, func(a Address) string {
+		return a.Email
+	})
+
 	ctx = logger.AddToLogContext(ctx, "service", service.Name())
-	logger.InfoCtx(ctx, fmt.Sprintf("Sending mail to %v through %s at [%v]", email.To, service.Name(), time.Now().String()))
+	ctx = logger.AddToLogContext(ctx, "addresses", to)
+	logger.InfoCtx(ctx, "sending mail")
 	return retry(ctx, service, email, services)
 }
 
