@@ -1,8 +1,8 @@
 ---
 Apache-2.0: 9
-BSD-3-Clause: 12
+BSD-3-Clause: 14
 ISC: 1
-MIT: 18
+MIT: 20
 ---
 ========================================================================
 Apache-2.0
@@ -30,8 +30,10 @@ BSD-3-Clause
    github.com/keighl/mandrill v0.0.0-20170605120353-1775dd4b3b41
    github.com/prometheus/client_golang v1.23.0
    github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc //indirect
+   github.com/mailgun/mailgun-go v2.0.0+incompatible //indirect
    github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 //indirect
    github.com/pmezard/go-difflib v1.0.0 //indirect
+   github.com/rogpeppe/go-internal v1.10.0 //indirect
    golang.org/x/crypto v0.41.0 //indirect
    golang.org/x/net v0.43.0 //indirect
    golang.org/x/sys v0.35.0 //indirect
@@ -63,6 +65,8 @@ MIT
    github.com/stretchr/testify v1.11.1
    github.com/beorn7/perks v1.0.1 //indirect
    github.com/cespare/xxhash/v2 v2.3.0 //indirect
+   github.com/gobuffalo/envy v1.10.2 //indirect
+   github.com/joho/godotenv v1.4.0 //indirect
    github.com/labstack/gommon v0.4.2 //indirect
    github.com/mattn/go-colorable v0.1.14 //indirect
    github.com/mattn/go-isatty v0.0.20 //indirect

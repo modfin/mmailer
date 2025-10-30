@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,6 +30,7 @@ import (
 	"github.com/modfin/mmailer/internal/svc"
 	"github.com/modfin/mmailer/services/brev"
 	"github.com/modfin/mmailer/services/generic"
+	"github.com/modfin/mmailer/services/mailgun"
 	"github.com/modfin/mmailer/services/mailjet"
 	"github.com/modfin/mmailer/services/mandrill"
 	"github.com/modfin/mmailer/services/sendgrid"
@@ -89,11 +91,11 @@ func main() {
 			parts[1] = strings.TrimSpace(config.Get().FromDomainOverride)
 			mail.From.Email = strings.Join(parts, "@")
 		}
-		preferredService := c.QueryParam("X-Service")
+		preferredService := c.Request().Header.Get("X-Service")
 		if len(preferredService) > 0 {
-			ctx = logger.AddToLogContext(ctx, "preferredService", preferredService)
+			ctx = logger.AddToLogContext(ctx, "preferred_service", preferredService)
 		}
-		res, err := facade.Send(ctx, mail, c.Request().Header.Get("X-Service"))
+		res, err := facade.Send(ctx, mail, preferredService)
 		if err != nil {
 			logger.ErrorCtx(ctx, err, "could not send email")
 			return c.String(http.StatusInternalServerError, "could not send email")
@@ -294,6 +296,33 @@ func loadServices() {
 			}
 			logger.Info(fmt.Sprintf(" - Mandrill: add the following posthook url %s", posthookUrl))
 			services = append(services, decorate(mandrill.New(parts[1])))
+		case "mailgun":
+			if len(parts) != 2 {
+				logger.Warn("mailgun api string is not valid,", s)
+				continue
+			}
+			apiKeys := slicez.Map(domainApiKeys[service], func(k mmailer.ServiceApiKey) mmailer.ApiKey {
+				return k.ApiKey
+			})
+			for _, k := range domainApiKeys[service] {
+				logger.Info(fmt.Sprintf(" - Mailgun: key enabled: %s", k.Domain))
+				for k, v := range k.Props {
+					logger.Info(fmt.Sprintf("   - Mailgun: property: %s=%s", k, v))
+				}
+			}
+			if len(apiKeys) == 0 {
+				logger.Warn(" - Mailgun: disabled, no api keys provided")
+				continue
+			}
+			webhookSigningKey := parts[1]
+			_, err := hex.DecodeString(webhookSigningKey)
+			if err != nil {
+				logger.Warn(" - Mailgun: disabled, bad webhook signing key")
+				continue
+			}
+
+			logger.Info(fmt.Sprintf(" - Mailgun: add the following posthook url %s", posthookUrl))
+			services = append(services, decorate(mailgun.New(apiKeys, webhookSigningKey)))
 		case "sendgrid":
 			if len(parts) < 1 || len(parts) > 2 {
 				logger.Warn("sendgrid api string is not valid,", s)

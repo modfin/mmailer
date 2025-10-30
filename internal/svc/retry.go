@@ -3,9 +3,9 @@ package svc
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/modfin/mmailer"
+	"github.com/modfin/mmailer/internal/logger"
 )
 
 func RetryEach(ctx context.Context, s mmailer.Service, e mmailer.Email, services []mmailer.Service) (res []mmailer.Response, err error) {
@@ -14,15 +14,18 @@ func RetryEach(ctx context.Context, s mmailer.Service, e mmailer.Email, services
 		return res, nil
 	}
 
-	var acc string = err.Error()
+	var errs []error
 	for _, ss := range services {
+		ctx := logger.AddToLogContext(ctx, "fallback_service", ss.Name())
+		logger.WarnCtx(ctx, "err sending mail, retrying with fallback", "error", err)
+		ctx = logger.AddToLogContext(ctx, "service", ss.Name())
 		res, err = ss.Send(ctx, e)
 		if err == nil {
 			return res, nil
 		}
-		acc = fmt.Sprintf("%s: %s", err.Error(), acc)
+		errs = append(errs, err)
 	}
-	return nil, errors.New(acc)
+	return nil, errors.Join(err)
 }
 
 func RetryOneOther(ctx context.Context, s mmailer.Service, e mmailer.Email, services []mmailer.Service) (res []mmailer.Response, err error) {
@@ -34,6 +37,9 @@ func RetryOneOther(ctx context.Context, s mmailer.Service, e mmailer.Email, serv
 		if s.Name() == ss.Name() {
 			continue
 		}
+		ctx := logger.AddToLogContext(ctx, "fallback_service", ss.Name())
+		logger.WarnCtx(ctx, "err sending mail, retrying with fallback", "error", err)
+		ctx = logger.AddToLogContext(ctx, "service", ss.Name())
 		return ss.Send(ctx, e)
 	}
 	return nil, err
