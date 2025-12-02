@@ -65,7 +65,7 @@ func (m *Sendgrid) Send(_ context.Context, email mmailer.Email) (res []mmailer.R
 	}
 	html := email.Html
 
-	if unicodeHack {
+	if unicodeHack && strings.TrimSpace(html) != "" {
 		// Force sendgrid to send HTML Body as UTF8 by appending a "word joiner" (U+2060)
 		// otherwise sendgrid encodes the HTML as iso-8859-1 if the HTML lacks any Unicode characters.
 		// which should be fine, but for some reason this causes gmail to clip the email.
